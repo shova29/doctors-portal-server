@@ -45,10 +45,11 @@ async function run() {
       .db("doctors-portal")
       .collection("bookings");
     const userCollection = client.db("doctors-portal").collection("users");
+    const doctorCollection = client.db("doctors-portal").collection("doctors");
 
     app.get("/service", async (req, res) => {
       const query = {};
-      const cursor = serviceCollection.find(query);
+      const cursor = serviceCollection.find(query).project({ name: 1 });
       const services = await cursor.toArray();
       res.send(services);
     });
@@ -58,14 +59,27 @@ async function run() {
       res.send(users);
     });
 
-    app.put("/user/admin/:email", async (req, res) => {
+    app.get("/admin/:email", async (req, res) => {
       const email = req.params.email;
-      const filter = { email: email };
-      const updateDoc = {
-        $set: { role: "admin" },
-      };
-      const result = await userCollection.updateOne(filter, updateDoc);
-      res.send(result);
+      const user = await userCollection.findOne({ email: email });
+      const isAdmin = user.role === "admin";
+      res.send({ admin: isAdmin });
+    });
+
+    app.put("/user/admin/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      const requester = req.decoded.email;
+      const requesterAccount = await userCollection.find({ email: requester });
+      if (requesterAccount.role === "admin") {
+        const filter = { email: email };
+        const updateDoc = {
+          $set: { role: "admin" },
+        };
+        const result = await userCollection.updateOne(filter, updateDoc);
+        res.send(result);
+      } else {
+        res.status(403).send({ message: "Forbidden Access" });
+      }
     });
 
     app.put("/user/:email", async (req, res) => {
@@ -152,20 +166,16 @@ async function run() {
       return res.send({ success: true, result });
     });
 
-    app.get("/id", (res, req) => {
-      res.json({ result: true });
+    app.post("/doctor", async (req, res) => {
+      const doctor = req.body;
+      const result = await doctorCollection.insertOne(doctor);
+      res.send(result);
     });
-  } catch {}
+  } finally {
+  }
 }
 
 run().catch(console.dir);
-
-/*
-client.connect((err) => {
-  const collection = client.db("test").collection("devices");
-  // perform actions on the collection object
-  client.close();
-}); */
 
 app.get("/", (req, res) => {
   res.send("Doctors Portal Running");
