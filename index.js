@@ -45,11 +45,17 @@ async function run() {
       .db("doctors-portal")
       .collection("bookings");
     const userCollection = client.db("doctors-portal").collection("users");
+
     app.get("/service", async (req, res) => {
       const query = {};
       const cursor = serviceCollection.find(query);
       const services = await cursor.toArray();
       res.send(services);
+    });
+
+    app.get("/user", verifyJWT, async (req, res) => {
+      const users = await userCollection.find().toArray();
+      res.send(users);
     });
 
     app.put("/user/:email", async (req, res) => {
