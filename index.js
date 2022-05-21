@@ -58,6 +58,16 @@ async function run() {
       res.send(users);
     });
 
+    app.put("/user/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const filter = { email: email };
+      const updateDoc = {
+        $set: { role: "admin" },
+      };
+      const result = await userCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
     app.put("/user/:email", async (req, res) => {
       const email = req.params.email;
       const user = req.body;
@@ -70,7 +80,7 @@ async function run() {
       const token = jwt.sign(
         { email: email },
         process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: "1h" }
+        { expiresIn: "1day" }
       );
       res.send({ result, token: token });
     });
@@ -148,7 +158,7 @@ async function run() {
   } catch {}
 }
 
-run().catch(console.dir());
+run().catch(console.dir);
 
 /*
 client.connect((err) => {
